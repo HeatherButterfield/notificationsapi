@@ -1,13 +1,13 @@
 <?php
 require_once 'AppService.php';
-class PlayerService extends AppService
+class CallService extends AppService
 {
     function __construct($dbconfig, $request){
         parent::__construct($dbconfig, $request);
     }
 
     function list() {
-        $sql = "select * FROM players";
+        $sql = "select * FROM coaches";
         try {
             $stmt = $this->dbcon->query($sql);
             $wines = $stmt->fetchAll(PDO::FETCH_OBJ);
@@ -20,8 +20,8 @@ class PlayerService extends AppService
     }
 
     function read() {
-        $id = $this->request->getAttribute('id');
-        $sql = "SELECT * FROM players WHERE id=$id";
+        $id = $request->getAttribute('id');
+        $sql = "SELECT * FROM coaches WHERE id=$id";
         try {
             $stmt = $this->dbcon->query($sql);
             $wines = $stmt->fetchAll(PDO::FETCH_OBJ);
@@ -36,7 +36,7 @@ class PlayerService extends AppService
     function create() {
         $team = json_decode($this->request->getBody());
 
-        $sql = "INSERT INTO players (id, name, team, phone, age) VALUES (:id, :name, :team, :phone, :age)";
+        $sql = "INSERT INTO coaches (id, name, team, phone, email) VALUES (:id, :name, :team, :phone, :email)";
         try {
             $db = $this->dbcon;
             $stmt = $db->prepare($sql);
@@ -51,16 +51,21 @@ class PlayerService extends AppService
             $team->phone = $this->sanitize($team->phone);
             $phoneError = $this->required($team->phone, "phone");
             $phoneError = $this->validatePhone($team->phone);
-            $stmt->bindParam("age", $team->age);
-            $team->age = $this->sanitize($team->age);
-            if (!$nameError && !$phoneError) {
+            $stmt->bindParam("email", $team->email);
+            $team->email = $this->sanitize($team->email);
+            $emailError = $this->required($team->email, "email");
+            $emailError = $this->validateEmail($team->email);
+            if (!$emailError && !$nameError) {
                 $stmt->execute();
                 $db = null;
                 echo json_encode($team);
             }
+            if ($emailError) {
+                echo $emailError;
+            }
             if ($nameError) {
                 echo $nameError;
-            }  
+            }
             if ($phoneError) {
                 echo $phoneError;
             }
@@ -71,33 +76,27 @@ class PlayerService extends AppService
 
     function update() {
         $team = json_decode($this->request->getBody());
-        $id = $this->request->getAttribute('id');
-        $sql = "UPDATE players SET name=:name, team=:team, phone=:phone, age=:age WHERE id=:id";
+        $id = $request->getAttribute('id');
+        $sql = "UPDATE coaches SET name=:name, team=:team, phone=:phone, email=:email WHERE id=:id";
         try {
             $db = $this->dbcon;
             $stmt = $db->prepare($sql);
             $stmt->bindParam("id", $id);
             $stmt->bindParam("name", $team->name);
             $team->name = $this->sanitize($team->name);
-            $nameError = $this->required($team->name, "name");
             $stmt->bindParam("team", $team->team);
             $team->team = $this->sanitize($team->team);
             $stmt->bindParam("phone", $team->phone);
             $team->phone = $this->sanitize($team->phone);
-            $phoneError = $this->required($team->phone, "phone");
-            $phoneError = $this->validatePhone($team->phone);
-            $stmt->bindParam("age", $team->age);
-            $team->age = $this->sanitize($team->age);
-            if (!$nameError && !$phoneError) {
+            $stmt->bindParam("email", $team->email);
+            $emailError = $this->validateEmail($team->email);
+            if (!$emailError) {
                 $stmt->execute();
                 $db = null;
                 echo json_encode($team);
             }
-            if ($nameError) {
-                echo $nameError;
-            }  
-            if ($phoneError) {
-                echo $phoneError;
+            if ($emailError) {
+                echo $emailError;
             }
         } catch(PDOException $e) {
             echo '{"error":{"text":'. $e->getMessage() .'}}';
@@ -106,14 +105,14 @@ class PlayerService extends AppService
 
     function delete() {
         $id = $this->request->getAttribute('id');
-        $sql = "DELETE FROM players WHERE id=:id";
+        $sql = "DELETE FROM coaches WHERE id=:id";
         try {
             $db = $this->dbcon;
             $stmt = $db->prepare($sql);
             $stmt->bindParam("id", $id);
             $stmt->execute();
             $db = null;
-            echo '{"error":{"text":"successfully! deleted Player"}}';
+            echo '{"error":{"text":"successfully! deleted Team"}}';
         } catch(PDOException $e) {
             echo '{"error":{"text":'. $e->getMessage() .'}}';
         }
